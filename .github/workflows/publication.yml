@@ -1,5 +1,5 @@
-name: Flow Registry read-only publication pilot
-run-name: Flow Registry read-only pilot at ${{ inputs.expected_source_sha }}
+name: Flow Registry read-only OCI qualification
+run-name: Flow Registry inline qualification at ${{ inputs.expected_source_sha }}
 
 on:
   workflow_dispatch:
@@ -18,78 +18,167 @@ on:
         required: true
 
 permissions: {}
+defaults:
+  run:
+    shell: bash
 env:
-  SELECTED_SOURCE: ${{ inputs.expected_source_sha }}
-  SELECTED_REF: ${{ inputs.selected_ref }}
-  PUBLISHER_PINS: ${{ inputs.publisher_pins }}
+  UPSTREAM: https://github.com/pandops/flowai-flow-registry.git
+  CANDIDATE_REF: refs/heads/impl-change-v0052-deploy-with-helmfile
+  PLATFORM: linux/amd64
+  POSTGRES: docker.io/library/postgres@sha256:a85daf0dbd5e79586e850e3fe4b21b796799828ad015ce2166aeb98cc24da61c
 
 jobs:
-  qualify:
+  select:
     if: github.repository == 'pandops/flowai-flow-registry' && github.ref == 'refs/heads/master' && github.ref_protected && github.run_attempt == '1'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 5
     environment: flow-registry-read-only-pilot
+    outputs:
+      source: ${{ steps.selection.outputs.source }}
+      pins: ${{ steps.selection.outputs.pins }}
+    steps:
+      - name: Verify the approved workflow, source and schema selections
+        id: selection
+        env:
+          APPROVED_WORKFLOW: ${{ vars.FLOW_REGISTRY_PILOT_WORKFLOW_REVISION }}
+          APPROVED_SOURCE: ${{ vars.FLOW_REGISTRY_PILOT_SOURCE }}
+          APPROVED_PINS: ${{ vars.FLOW_REGISTRY_PILOT_PINS }}
+          SELECTED_SOURCE: ${{ inputs.expected_source_sha }}
+          SELECTED_REF: ${{ inputs.selected_ref }}
+          PUBLISHER_PINS: ${{ inputs.publisher_pins }}
+        run: |
+          [[ "$GITHUB_WORKFLOW_REF" == "$GITHUB_REPOSITORY/.github/workflows/publication.yml@refs/heads/master" ]]
+          if ! [[ "$GITHUB_SHA" == "$GITHUB_WORKFLOW_SHA" && "$GITHUB_WORKFLOW_SHA" == "$APPROVED_WORKFLOW" ]]; then
+            echo '::error::The dispatch does not match the approved protected workflow SHA.'
+            exit 1
+          fi
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ && "$SELECTED_SOURCE" == "$APPROVED_SOURCE" && "$SELECTED_REF" == "$CANDIDATE_REF" ]]
+          [[ "$(git ls-remote --exit-code "$UPSTREAM" refs/heads/master)" == "$GITHUB_SHA"$'\trefs/heads/master' ]]
+          [[ "$(git ls-remote --exit-code "$UPSTREAM" "$SELECTED_REF")" == "$SELECTED_SOURCE"$'\t'"$SELECTED_REF" ]]
+
+          pins="$(jq -ce '
+            select(type == "array" and length == 15)
+            | select(all(.[]; keys == ["digest", "path", "revision"]
+                and (.path | test("^svc/(source-controller|model-registry|executor-registry)/schemas/[A-Za-z0-9_.-]+[.]json$"))
+                and (.revision | test("^[0-9a-f]{40}$")) and (.digest | test("^sha256:[0-9a-f]{64}$"))))
+            | select((map(.path) | unique | length) == length)
+            | select(group_by(.path | split("/")[1]) | all(.[]; (map(.revision) | unique | length) == 1))
+            | sort_by(.path) | map({path, revision, digest})
+          ' <<< "$PUBLISHER_PINS")"
+          checksum="$(printf '%s\n' "$pins" | sha256sum)"
+          if [[ "sha256:${checksum%% *}" != "$APPROVED_PINS" ]]; then
+            echo '::error::The publisher pins do not match the approved manifest.'
+            exit 1
+          fi
+          printf 'source=%s\npins=%s\n' "$SELECTED_SOURCE" "$pins" >> "$GITHUB_OUTPUT"
+          printf 'Selected %s at %s with %s\n' "$SELECTED_REF" "$SELECTED_SOURCE" "$APPROVED_PINS"
+
+  qualify:
+    needs: select
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     permissions:
       contents: read
-    env: &approval
-      APPROVED_WORKFLOW_REVISION: ${{ vars.FLOW_REGISTRY_PILOT_WORKFLOW_REVISION }}
-      APPROVED_SOURCE: ${{ vars.FLOW_REGISTRY_PILOT_SOURCE }}
-      APPROVED_PINS: ${{ vars.FLOW_REGISTRY_PILOT_PINS }}
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
+      production_identity: ${{ steps.inputs.outputs.production_identity }}
+    env:
+      SOURCE: ${{ needs.select.outputs.source }}
+      PINS: ${{ needs.select.outputs.pins }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ github.workflow_sha }}
-          path: trusted
-          persist-credentials: false
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: '24.20.0'
-          package-manager-cache: false
-      - name: Check approved refs and pins
-        run: node trusted/release/authority.mjs --check trusted
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ inputs.expected_source_sha }}
+          ref: ${{ needs.select.outputs.source }}
           path: candidate
           persist-credentials: false
+      - name: Stage only declared, digest-matched publisher schemas
+        id: inputs
+        working-directory: candidate
+        run: |
+          [[ "$(git rev-parse HEAD)" == "$SOURCE" && -z "$(git status --porcelain)" ]]
+          contracts="$RUNNER_TEMP/contracts"
+          mkdir -p "$contracts/qa-e2e/scripts" "$RUNNER_TEMP/qualification"
+          declarations="$contracts/qa-e2e/scripts/shared-test-inputs.json"
+          git show "$SOURCE:qualification/flow-registry-declarations.json" > "$declarations"
+          diff -u \
+            <(jq -er '.schemas | to_entries | map(select(.value[0] != "flow-registry" and (.value | index("flow-registry"))) | .key) | sort[]' "$declarations") \
+            <(jq -er '.[].path' <<< "$PINS")
+          jq -er '.[] | [.path, .revision, .digest] | @tsv' <<< "$PINS" > "$contracts/pins.tsv"
+
+          while IFS=$'\t' read -r path revision digest; do
+            publisher="${path#svc/}"
+            publisher="${publisher%%/*}"
+            url="https://raw.githubusercontent.com/pandops/flowai-$publisher/$revision/${path#svc/"$publisher"/}"
+            mkdir -p "$contracts/${path%/*}"
+            status="$(curl -qfsS --proto '=https' --max-time 30 -o "$contracts/$path" -w '%{http_code}' "$url")"
+            [[ "$status" == 200 ]]
+            printf '%s  %s\n' "${digest#sha256:}" "$contracts/$path" | sha256sum --check
+            jq -e 'type == "object"' "$contracts/$path" > /dev/null
+            printf '%s %s %s\n' "$path" "$revision" "$digest"
+          done < "$contracts/pins.tsv"
+
+          tree="$(git ls-tree -r "$SOURCE" -- .gitattributes Containerfile .dockerignore go.mod go.sum cmd internal schemas)"
+          if grep -Eq '^(120000|160000) ' <<< "$tree"; then exit 1; fi
+          checksum="$(jq -cn --arg inputs "$tree" --arg platform "$PLATFORM" '{inputs:$inputs, platform:$platform}' | sha256sum)"
+          printf 'production_identity=sha256:%s\n' "${checksum%% *}" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
           go-version: '1.26.2'
           cache: false
-      - name: Run required suites at exact source and declared pins
-        run: node trusted/release/actions.mjs qualify trusted candidate "$RUNNER_TEMP/qualification"
+      - name: Run required unit and PostgreSQL integration tests
+        working-directory: candidate
+        run: |
+          evidence="$RUNNER_TEMP/qualification"
+          for suite in unit integration; do
+            tags=()
+            if [[ "$suite" == integration ]]; then
+              docker pull --platform "$PLATFORM" "$POSTGRES"
+              docker tag "$POSTGRES" docker.io/library/postgres:16
+              tags=(-tags=integration)
+            fi
+            command=(go test -mod=readonly -count=1 -coverpkg=./... "${tags[@]}" -v ./...)
+            printf '%s\n' "${command[*]}"
+            log="$evidence/$suite.log"
+            if ! env -i PATH="$PATH" HOME="$HOME" TMPDIR="$RUNNER_TEMP" \
+              GOTOOLCHAIN=local GOWORK=off FLOWAI_CONTRACT_FIXTURE_DIR="$RUNNER_TEMP/contracts" \
+              "${command[@]}" > "$log" 2>&1; then
+              sed 's/^/  /' "$log"
+              exit 1
+            fi
+            grep -q '^--- PASS: ' "$log"
+            if grep -Eq '^[[:space:]]*--- SKIP: ' "$log"; then
+              sed -n '/--- SKIP: /s/^/  /p' "$log"
+              exit 1
+            fi
+            printf '%s top-level tests passed in %s\n' "$(grep -c '^--- PASS: ' "$log")" "$suite"
+          done
+          cd "$evidence"
+          sha256sum unit.log integration.log | tee SHA256SUMS
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        id: upload
         with:
           name: qualification-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/qualification/qualification.json
-            ${{ runner.temp }}/qualification/unit.log
-            ${{ runner.temp }}/qualification/integration.log
+          path: ${{ runner.temp }}/qualification/
           if-no-files-found: error
 
   build:
-    needs: qualify
+    needs: [select, qualify]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    environment: flow-registry-read-only-pilot
     permissions:
       contents: read
-    env: *approval
+    env:
+      SOURCE: ${{ needs.select.outputs.source }}
+      QUALIFIED_IDENTITY: ${{ needs.qualify.outputs.production_identity }}
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
+      image: ${{ steps.oci.outputs.image }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ github.workflow_sha }}
-          path: trusted
-          persist-credentials: false
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: '24.20.0'
-          package-manager-cache: false
-      - name: Check approved refs and pins
-        run: node trusted/release/authority.mjs --check trusted
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ inputs.expected_source_sha }}
+          ref: ${{ needs.select.outputs.source }}
           path: candidate
           persist-credentials: false
       - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
@@ -97,46 +186,178 @@ jobs:
           version: v0.31.1
           driver-opts: image=moby/buildkit:v0.27.1@sha256:1e110c71d389d6d24f67b9438e2f7b8da749a6ff407b22a1631e025c95599368
           cache-binary: false
-      - name: Export candidate OCI archive
-        run: node trusted/release/actions.mjs build trusted candidate "$RUNNER_TEMP/oci"
+      - name: Export the qualified production context as OCI
+        working-directory: candidate
+        run: |
+          [[ "$(git rev-parse HEAD)" == "$SOURCE" ]]
+          paths=(Containerfile .dockerignore go.mod go.sum cmd internal schemas)
+          tree="$(git ls-tree -r "$SOURCE" -- .gitattributes "${paths[@]}")"
+          if grep -Eq '^(120000|160000) ' <<< "$tree"; then exit 1; fi
+          checksum="$(jq -cn --arg inputs "$tree" --arg platform "$PLATFORM" '{inputs:$inputs, platform:$platform}' | sha256sum)"
+          [[ "sha256:${checksum%% *}" == "$QUALIFIED_IDENTITY" ]]
+
+          context="$RUNNER_TEMP/build-context"
+          evidence="$RUNNER_TEMP/oci"
+          mkdir "$context" "$evidence"
+          git archive "$SOURCE" -- "${paths[@]}" | tar -xf - -C "$context"
+          archive="$evidence/image.oci.tar"
+          docker buildx build --platform "$PLATFORM" --provenance=false --sbom=false \
+            --output "type=oci,dest=$archive" -f "$context/Containerfile" "$context"
+
+      - name: Verify OCI layout and digests
+        id: oci
+        run: |
+          evidence="$RUNNER_TEMP/oci"
+          archive="$evidence/image.oci.tar"
+          layout="$RUNNER_TEMP/oci-layout"
+          mkdir "$layout"
+          tar -tf "$archive" > "$RUNNER_TEMP/oci.paths"
+          tar -tvf "$archive" > "$RUNNER_TEMP/oci.entries"
+          awk '($0 !~ /^-.* (oci-layout|index[.]json|blobs\/sha256\/[0-9a-f]+)$/ &&
+                $0 !~ /^d.* blobs(\/sha256)?\/?$/) { exit 1 }' "$RUNNER_TEMP/oci.entries"
+          [[ -z "$(sort "$RUNNER_TEMP/oci.paths" | uniq -d)" ]]
+          tar -xf "$archive" -C "$layout" --no-same-owner --no-same-permissions
+          cd "$layout"
+          jq -e '.imageLayoutVersion == "1.0.0"' oci-layout > /dev/null
+          image="$(jq -er '
+            select(.schemaVersion == 2 and (.manifests | length == 1))
+            | .manifests[0]
+            | select(.mediaType == "application/vnd.oci.image.manifest.v1+json")
+            | .digest | select(test("^sha256:[0-9a-f]{64}$"))
+          ' index.json)"
+          manifest="blobs/sha256/${image#sha256:}"
+          config="$(jq -er '
+            select(.schemaVersion == 2 and (.layers | length > 0))
+            | .config | select(.mediaType == "application/vnd.oci.image.config.v1+json")
+            | .digest | select(test("^sha256:[0-9a-f]{64}$"))
+          ' "$manifest")"
+          jq -e --arg platform "$PLATFORM" '(.os + "/" + .architecture) == $platform' "blobs/sha256/${config#sha256:}" > /dev/null
+          jq -ers '
+            [.[0].manifests[0], .[1].config, .[1].layers[]]
+            | select(all(.[]; (.digest | test("^sha256:[0-9a-f]{64}$")) and (.size | type == "number")))
+            | .[] | [.digest[7:], .size] | @tsv
+          ' index.json "$manifest" > "$RUNNER_TEMP/oci.blobs"
+          diff -u <(cut -f1 "$RUNNER_TEMP/oci.blobs" | sort -u) <(find blobs/sha256 -type f -printf '%f\n' | sort)
+          while IFS=$'\t' read -r digest size; do
+            blob="blobs/sha256/$digest"
+            [[ "$(stat -c '%s' "$blob")" == "$size" ]]
+            printf '%s  %s\n' "$digest" "$blob" | sha256sum --check
+          done < "$RUNNER_TEMP/oci.blobs"
+          cd "$evidence"
+          sha256sum image.oci.tar | tee SHA256SUMS
+          printf 'image=%s\n' "$image" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        id: upload
         with:
           name: oci-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/oci/build.json
-            ${{ runner.temp }}/oci/image.oci.tar
+          path: ${{ runner.temp }}/oci/
           if-no-files-found: error
           compression-level: 0
 
   verify-publication-context:
-    needs: [qualify, build]
+    needs: [select, qualify, build]
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    environment: flow-registry-read-only-pilot
+    timeout-minutes: 10
     permissions:
-      actions: read
       contents: read
-    env: *approval
+    env:
+      SOURCE: ${{ needs.select.outputs.source }}
+      PINS: ${{ needs.select.outputs.pins }}
+      QUALIFIED_IDENTITY: ${{ needs.qualify.outputs.production_identity }}
+      QUALIFICATION_ID: ${{ needs.qualify.outputs.artifact_id }}
+      QUALIFICATION_DIGEST: ${{ needs.qualify.outputs.artifact_digest }}
+      OCI_ID: ${{ needs.build.outputs.artifact_id }}
+      OCI_DIGEST: ${{ needs.build.outputs.artifact_digest }}
+      IMAGE: ${{ needs.build.outputs.image }}
+      EXPECTED_VERSION: ${{ inputs.expected_version }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.workflow_sha }}
-          path: trusted
           persist-credentials: false
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: '24.20.0'
           package-manager-cache: false
-      - name: Check approved refs and pins
-        run: node trusted/release/authority.mjs --check trusted
-      - name: Install the trusted semantic-release lock
-        working-directory: trusted/release
+      - name: Install the pinned semantic-release CLI
+        working-directory: .github/semantic-release
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Bind qualification and OCI to the approved publication context
+      - name: Resolve the candidate prerelease with semantic-release
+        id: version
+        run: |
+          [[ "$(git rev-parse HEAD)" == "$GITHUB_WORKFLOW_SHA" ]]
+          [[ "$EXPECTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-pilot\.[0-9]+$ ]]
+          mirror="$RUNNER_TEMP/refs.git"
+          metadata="$RUNNER_TEMP/version"
+          git init --quiet --bare "$mirror"
+          git -C "$mirror" fetch --quiet --tags "$UPSTREAM" \
+            refs/heads/master:refs/heads/master "$CANDIDATE_REF:$CANDIDATE_REF" \
+            'refs/notes/semantic-release-*:refs/notes/semantic-release-*'
+          [[ "$(git -C "$mirror" rev-parse refs/heads/master)" == "$GITHUB_WORKFLOW_SHA" ]]
+          [[ "$(git -C "$mirror" rev-parse "$CANDIDATE_REF")" == "$SOURCE" ]]
+
+          git init --quiet "$metadata"
+          git -C "$metadata" config core.hooksPath /dev/null
+          git -C "$metadata" remote add origin "$mirror"
+          git -C "$metadata" fetch --quiet --tags origin "$CANDIDATE_REF:$CANDIDATE_REF"
+          git -C "$metadata" symbolic-ref HEAD "$CANDIDATE_REF"
+          [[ "$(git -C "$metadata" rev-parse HEAD)" == "$SOURCE" ]]
+          jq -n --arg branch "${CANDIDATE_REF#refs/heads/}" '{
+            branches:["master", {name:$branch, prerelease:"pilot", channel:"pilot"}],
+            plugins:["@semantic-release/commit-analyzer"], tagFormat:"v${version}"
+          }' > "$metadata/.releaserc.json"
+
+          cd "$metadata"
+          log="$RUNNER_TEMP/semantic-release.log"
+          env -i PATH="$PATH" HOME="$metadata" LANG=C.UTF-8 NO_COLOR=1 \
+            GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 \
+            "$GITHUB_WORKSPACE/.github/semantic-release/node_modules/.bin/semantic-release" \
+            --dry-run --no-ci --repository-url "$mirror" 2>&1 | tee "$log"
+          [[ "$(sed -n 's/^.*[Tt]he next release version is //p' "$log")" == "$EXPECTED_VERSION" ]]
+          grep -Fq "Skip v$EXPECTED_VERSION tag creation in dry-run mode" "$log"
+          grep -Fq "Run automated release from branch ${CANDIDATE_REF#refs/heads/} on repository $mirror in dry-run mode" "$log"
+          grep -Fq "Published release $EXPECTED_VERSION on pilot channel" "$log"
+          printf 'version=%s\n' "$EXPECTED_VERSION" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.qualify.outputs.artifact_id }}
+          path: ${{ runner.temp }}/qualification
+          digest-mismatch: error
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact_id }}
+          path: ${{ runner.temp }}/oci
+          digest-mismatch: error
+      - name: Bind the attempt, pinned inputs and verified artifact bytes
         env:
-          ACTIONS_READ_TOKEN: ${{ github.token }}
-          EXPECTED_VERSION: ${{ inputs.expected_version }}
-        run: node trusted/release/verify-run.mjs trusted "$RUNNER_TEMP/publication-context.json"
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          qualification="$RUNNER_TEMP/qualification"
+          oci="$RUNNER_TEMP/oci"
+          [[ "$(ls -1A "$qualification")" == $'SHA256SUMS\nintegration.log\nunit.log' ]]
+          [[ "$(ls -1A "$oci")" == $'SHA256SUMS\nimage.oci.tar' ]]
+          diff -u "$qualification/SHA256SUMS" <(cd "$qualification" && sha256sum unit.log integration.log)
+          diff -u "$oci/SHA256SUMS" <(cd "$oci" && sha256sum image.oci.tar)
+          [[ "$(tar -xOf "$oci/image.oci.tar" index.json | jq -er '.manifests[0].digest')" == "$IMAGE" ]]
+          for digest in "$QUALIFICATION_DIGEST" "$OCI_DIGEST"; do
+            [[ "$digest" =~ ^[0-9a-f]{64}$ ]]
+          done
+          workflow_digest="$(sha256sum .github/workflows/publication.yml)"
+          jq -n --arg repository "$GITHUB_REPOSITORY" --arg workflow "$GITHUB_WORKFLOW_SHA" \
+            --arg workflowDigest "sha256:${workflow_digest%% *}" --arg run "$GITHUB_RUN_ID" \
+            --arg attempt "$GITHUB_RUN_ATTEMPT" --arg source "$SOURCE" --arg ref "$CANDIDATE_REF" \
+            --argjson pins "$PINS" --arg identity "$QUALIFIED_IDENTITY" --arg version "$VERSION" --arg postgres "$POSTGRES" \
+            --arg qualificationID "$QUALIFICATION_ID" --arg qualificationDigest "sha256:$QUALIFICATION_DIGEST" \
+            --arg ociID "$OCI_ID" --arg ociDigest "sha256:$OCI_DIGEST" --arg image "$IMAGE" --arg platform "$PLATFORM" \
+            --rawfile tests "$qualification/SHA256SUMS" --rawfile archive "$oci/SHA256SUMS" \
+            '{repository:$repository, workflow:$workflow, workflowDigest:$workflowDigest, run:$run, attempt:$attempt,
+              source:$source, ref:$ref, pins:$pins, productionIdentity:$identity, postgres:$postgres,
+              version:{version:$version, tag:("v"+$version), target:$source, channel:"pilot"},
+              qualification:{id:$qualificationID, zipDigest:$qualificationDigest, files:$tests,
+                unit:"go test -mod=readonly -count=1 -coverpkg=./... -v ./...",
+                integration:"go test -mod=readonly -count=1 -coverpkg=./... -tags=integration -v ./..."},
+              oci:{id:$ociID, zipDigest:$ociDigest, files:$archive, manifest:$image, platform:$platform}}' \
+            | tee "$RUNNER_TEMP/publication-context.json"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: publication-context-${{ github.run_attempt }}
