@@ -1,0 +1,418 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs.schema.json",
+  "title": "flow-registry shared definitions",
+  "description": "Definitions referenced by the other flow-registry schemas. Not a message by itself.",
+  "$defs": {
+    "id": {
+      "description": "Positive 64-bit FlowAI identifier (rule 43).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9223372036854775807
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "executionTag": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,128}$"
+    },
+    "modelAlias": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "budgetUSD": {
+      "description": "Decimal string 0.01..1000000.00 with at most two decimal places.",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,6})(\\.[0-9]{1,2})?$"
+    },
+    "perTaskLimit": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "max_budget_usd": { "$ref": "#/$defs/budgetUSD" },
+            "rpm": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+            "tpm": { "type": "integer", "minimum": 1, "maximum": 100000000 }
+          }
+        }
+      ]
+    },
+    "flowLimit": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "max_budget_usd": { "$ref": "#/$defs/budgetUSD" },
+            "budget_period": { "enum": ["day", "week", "month"] },
+            "rpm": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+            "tpm": { "type": "integer", "minimum": 1, "maximum": 100000000 }
+          },
+          "dependentRequired": {
+            "max_budget_usd": ["budget_period"],
+            "budget_period": ["max_budget_usd"]
+          }
+        }
+      ]
+    },
+    "image": {
+      "description": "Digest-bearing image override; null is the explicit absence marker.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repository", "digest"],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+            }
+          }
+        }
+      ]
+    },
+    "executionParameters": {
+      "description": "Validated additional execution parameters; only the empty set is accepted.",
+      "type": "object",
+      "maxProperties": 0
+    },
+    "taskSettings": {
+      "type": "object",
+      "required": [
+        "failure_retry_count",
+        "failure_retry_wait_seconds",
+        "pending_limit_seconds",
+        "release_delay_seconds"
+      ],
+      "properties": {
+        "failure_retry_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "failure_retry_wait_seconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 86400
+        },
+        "pending_limit_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        },
+        "release_delay_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        }
+      }
+    },
+    "flow": {
+      "description": "Flow resource as returned by flow-create, flow-get, flow-replace and flows-list. No state, status or agent_id.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "flow_id",
+        "name",
+        "execution_tag",
+        "model_aliases",
+        "per_task_limit",
+        "flow_limit",
+        "prompt_template",
+        "execution_parameters",
+        "default_image",
+        "source_ids",
+        "failure_retry_count",
+        "failure_retry_wait_seconds",
+        "pending_limit_seconds",
+        "release_delay_seconds",
+        "revision",
+        "execution_revision",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "flow_id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 800 },
+        "execution_tag": { "$ref": "#/$defs/executionTag" },
+        "model_aliases": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/modelAlias" },
+          "maxItems": 5,
+          "uniqueItems": true
+        },
+        "per_task_limit": { "$ref": "#/$defs/perTaskLimit" },
+        "flow_limit": { "$ref": "#/$defs/flowLimit" },
+        "prompt_template": { "type": "string", "minLength": 1 },
+        "execution_parameters": { "$ref": "#/$defs/executionParameters" },
+        "default_image": { "$ref": "#/$defs/image" },
+        "source_ids": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" },
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "failure_retry_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "failure_retry_wait_seconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 86400
+        },
+        "pending_limit_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        },
+        "release_delay_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        },
+        "revision": { "type": "integer", "minimum": 1 },
+        "execution_revision": { "type": "integer", "minimum": 1 },
+        "created_at": { "$ref": "#/$defs/timestamp" },
+        "updated_at": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "settings": {
+      "description": "Flow LLM settings projection: the Flow resource plus alias availability and usage from model-registry flows-status.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "flow_id",
+        "name",
+        "execution_tag",
+        "model_aliases",
+        "per_task_limit",
+        "flow_limit",
+        "prompt_template",
+        "execution_parameters",
+        "default_image",
+        "source_ids",
+        "failure_retry_count",
+        "failure_retry_wait_seconds",
+        "pending_limit_seconds",
+        "release_delay_seconds",
+        "revision",
+        "execution_revision",
+        "created_at",
+        "updated_at",
+        "models",
+        "usage"
+      ],
+      "properties": {
+        "flow_id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "execution_tag": { "$ref": "#/$defs/executionTag" },
+        "model_aliases": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/modelAlias" }
+        },
+        "per_task_limit": { "$ref": "#/$defs/perTaskLimit" },
+        "flow_limit": { "$ref": "#/$defs/flowLimit" },
+        "prompt_template": { "type": "string" },
+        "execution_parameters": { "$ref": "#/$defs/executionParameters" },
+        "default_image": { "$ref": "#/$defs/image" },
+        "source_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+        "failure_retry_count": { "type": "integer" },
+        "failure_retry_wait_seconds": { "type": "integer" },
+        "pending_limit_seconds": { "type": "integer" },
+        "release_delay_seconds": { "type": "integer" },
+        "revision": { "type": "integer", "minimum": 1 },
+        "execution_revision": { "type": "integer", "minimum": 1 },
+        "created_at": { "$ref": "#/$defs/timestamp" },
+        "updated_at": { "$ref": "#/$defs/timestamp" },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["model_alias", "availability"],
+            "properties": {
+              "model_alias": { "$ref": "#/$defs/modelAlias" },
+              "availability": {
+                "enum": ["active", "paused", "unavailable", "no_access"]
+              }
+            }
+          }
+        },
+        "usage": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Accepted REST shape (FlowBudgetUsage); null when model-registry has no successful observation or no reset time.",
+              "required": ["spend_usd", "max_budget_usd", "budget_reset_at"],
+              "properties": {
+                "spend_usd": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                },
+                "max_budget_usd": { "$ref": "#/$defs/budgetUSD" },
+                "budget_reset_at": { "$ref": "#/$defs/timestamp" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "executionRevision": {
+      "description": "Immutable Flow execution revision frozen by task-manager. Carries no model aliases, limits, provider data, keys or agent_id.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "revision",
+        "execution_tag",
+        "prompt_template",
+        "execution_parameters",
+        "default_image",
+        "failure_retry_count",
+        "failure_retry_wait_seconds",
+        "pending_limit_seconds",
+        "release_delay_seconds",
+        "created_at"
+      ],
+      "properties": {
+        "revision": { "type": "integer", "minimum": 1 },
+        "execution_tag": { "$ref": "#/$defs/executionTag" },
+        "prompt_template": { "type": "string", "minLength": 1 },
+        "execution_parameters": { "$ref": "#/$defs/executionParameters" },
+        "default_image": { "$ref": "#/$defs/image" },
+        "failure_retry_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "failure_retry_wait_seconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 86400
+        },
+        "pending_limit_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        },
+        "release_delay_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        },
+        "created_at": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "flowRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["flow_id", "name"],
+      "properties": {
+        "flow_id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" }
+      }
+    },
+    "flowWriteBody": {
+      "description": "Flow create and replacement body. agent_id and source_settings are rejected with 400 invalid_request.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "execution_tag", "model_aliases", "prompt_template"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 800 },
+        "execution_tag": { "$ref": "#/$defs/executionTag" },
+        "model_aliases": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/modelAlias" },
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true
+        },
+        "per_task_limit": { "$ref": "#/$defs/perTaskLimit" },
+        "flow_limit": { "$ref": "#/$defs/flowLimit" },
+        "prompt_template": { "type": "string", "minLength": 1 },
+        "execution_parameters": { "$ref": "#/$defs/executionParameters" },
+        "default_image": { "$ref": "#/$defs/image" },
+        "source_ids": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" },
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "source_revisions": {
+          "description": "Exact union of the old and new bound Sources: decimal source_id to its current Source revision.",
+          "type": "object",
+          "propertyNames": { "pattern": "^[1-9][0-9]{0,18}$" },
+          "additionalProperties": { "type": "integer", "minimum": 1 },
+          "maxProperties": 64
+        },
+        "failure_retry_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "failure_retry_wait_seconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 86400
+        },
+        "pending_limit_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        },
+        "release_delay_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        }
+      }
+    },
+    "settingsWriteBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_aliases"],
+      "properties": {
+        "model_aliases": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/modelAlias" },
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true
+        },
+        "per_task_limit": { "$ref": "#/$defs/perTaskLimit" },
+        "flow_limit": { "$ref": "#/$defs/flowLimit" }
+      }
+    },
+    "envelopeFields": {
+      "description": "Stream envelope fields (agents.md rule 10).",
+      "type": "object",
+      "required": ["publisher", "publisher_seq", "occurred_at"],
+      "properties": {
+        "publisher": { "const": "flow-registry" },
+        "publisher_seq": { "$ref": "#/$defs/id" },
+        "team_id": { "$ref": "#/$defs/id" },
+        "occurred_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+        }
+      }
+    }
+  }
+}

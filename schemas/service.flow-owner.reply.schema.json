@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "service.flow-owner.reply.schema.json",
+  "title": "flow-owner reply",
+  "description": "Status 200 with the Flow's team_id only, or 404 flow_not_found.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["team_id"],
+  "properties": {
+    "team_id": {
+      "$ref": "defs.schema.json#/$defs/id"
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "audit.llm-settings-replace.schema.json",
+  "title": "flow-registry audit llm-settings-replace",
+  "description": "Subject flow-registry.audit.llm-settings-replace.pub, stream ALL_AUDIT; headers team (decimal or admin), Nats-Msg-Id flow-registry-<publisher_seq>, request_id.",
+  "allOf": [
+    {
+      "$ref": "defs.schema.json#/$defs/envelopeFields"
+    }
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "publisher",
+    "publisher_seq",
+    "occurred_at",
+    "source_service",
+    "actor_type",
+    "action",
+    "resource_type",
+    "resource_id",
+    "request_id",
+    "outcome"
+  ],
+  "properties": {
+    "publisher": {
+      "const": "flow-registry"
+    },
+    "publisher_seq": {
+      "$ref": "defs.schema.json#/$defs/id"
+    },
+    "team_id": {
+      "$ref": "defs.schema.json#/$defs/id"
+    },
+    "occurred_at": {
+      "type": "string"
+    },
+    "source_service": {
+      "const": "flow-registry"
+    },
+    "actor_type": {
+      "const": "operator"
+    },
+    "actor_id": {
+      "$ref": "defs.schema.json#/$defs/id"
+    },
+    "actor_subject": {
+      "type": "string",
+      "minLength": 1
+    },
+    "action": {
+      "const": "llm-settings-replace"
+    },
+    "resource_type": {
+      "const": "flow"
+    },
+    "resource_id": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "defs.schema.json#/$defs/id"
+        }
+      ]
+    },
+    "request_id": {
+      "$ref": "defs.schema.json#/$defs/id"
+    },
+    "outcome": {
+      "enum": ["succeeded", "rejected"]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "changes": {
+      "description": "Non-secret display values only: never prompt text, parameter values, credentials or keys.",
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "integer", "null", "array", "object", "boolean"]
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "actor_type": {
+          "const": "operator"
+        }
+      },
+      "required": ["actor_id", "team_id"],
+      "not": {
+        "required": ["actor_subject"]
+      }
+    }
+  ]
+}

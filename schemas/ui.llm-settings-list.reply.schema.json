@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ui.llm-settings-list.reply.schema.json",
+  "title": "llm-settings-list reply",
+  "description": "Status 200.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["items", "next_cursor"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.schema.json#/$defs/settings"
+      }
+    },
+    "next_cursor": {
+      "type": ["string", "null"]
+    }
+  }
+}

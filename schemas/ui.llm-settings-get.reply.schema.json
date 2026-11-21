@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ui.llm-settings-get.reply.schema.json",
+  "title": "llm-settings-get reply",
+  "description": "Status 200, reply header ETag.",
+  "$ref": "defs.schema.json#/$defs/settings"
+}

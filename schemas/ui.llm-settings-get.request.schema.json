@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ui.llm-settings-get.request.schema.json",
+  "title": "llm-settings-get request",
+  "description": "Request headers: team (decimal team_id), operator_id, request_id, optional team_name. Backs GET /ui/v1/flow-llm-settings/{flow_id}.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "flow_id": {
+          "$ref": "defs.schema.json#/$defs/id"
+        }
+      },
+      "required": ["flow_id"]
+    }
+  },
+  "required": ["params"]
+}

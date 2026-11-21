@@ -1,0 +1,253 @@
+{
+  "schemas": {
+    "svc/source-controller/schemas/service.binding-guard.reply.schema.json": [
+      "source-controller",
+      "flow-registry"
+    ],
+    "svc/source-controller/schemas/service.binding-guard.request.schema.json": [
+      "source-controller",
+      "flow-registry"
+    ],
+    "svc/source-controller/schemas/service.sources-lookup.reply.schema.json": [
+      "source-controller",
+      "flow-registry"
+    ],
+    "svc/source-controller/schemas/service.sources-lookup.request.schema.json": [
+      "source-controller",
+      "flow-registry"
+    ],
+    "svc/flow-registry/schemas/admin.tags.reply.schema.json": [
+      "flow-registry",
+      "admin-panel"
+    ],
+    "svc/flow-registry/schemas/admin.tags.request.schema.json": [
+      "flow-registry",
+      "admin-panel"
+    ],
+    "svc/flow-registry/schemas/audit.admin-tags.schema.json": [
+      "flow-registry",
+      "audit"
+    ],
+    "svc/flow-registry/schemas/audit.flow-create.schema.json": [
+      "flow-registry",
+      "audit"
+    ],
+    "svc/flow-registry/schemas/audit.flow-get.schema.json": [
+      "flow-registry",
+      "audit"
+    ],
+    "svc/flow-registry/schemas/audit.flow-preview.schema.json": [
+      "flow-registry",
+      "audit"
+    ],
+    "svc/flow-registry/schemas/audit.flow-replace.schema.json": [
+      "flow-registry",
+      "audit"
+    ],
+    "svc/flow-registry/schemas/audit.flows-list.schema.json": [
+      "flow-registry",
+      "audit"
+    ],
+    "svc/flow-registry/schemas/audit.llm-settings-get.schema.json": [
+      "flow-registry",
+      "audit"
+    ],
+    "svc/flow-registry/schemas/audit.llm-settings-list.schema.json": [
+      "flow-registry",
+      "audit"
+    ],
+    "svc/flow-registry/schemas/audit.llm-settings-replace.schema.json": [
+      "flow-registry",
+      "audit"
+    ],
+    "svc/flow-registry/schemas/audit.retire-alias.schema.json": [
+      "flow-registry",
+      "audit"
+    ],
+    "svc/flow-registry/schemas/defs.schema.json": [
+      "flow-registry",
+      "admin-panel",
+      "api-gateway",
+      "audit",
+      "env-registry",
+      "journal",
+      "model-registry",
+      "task-manager"
+    ],
+    "svc/flow-registry/schemas/error.reply.schema.json": [
+      "flow-registry",
+      "admin-panel",
+      "api-gateway",
+      "env-registry",
+      "model-registry",
+      "task-manager"
+    ],
+    "svc/flow-registry/schemas/event.flow_team_restored.schema.json": [
+      "flow-registry",
+      "journal",
+      "task-manager"
+    ],
+    "svc/flow-registry/schemas/service.alias-usage.reply.schema.json": [
+      "flow-registry",
+      "model-registry"
+    ],
+    "svc/flow-registry/schemas/service.alias-usage.request.schema.json": [
+      "flow-registry",
+      "model-registry"
+    ],
+    "svc/flow-registry/schemas/service.flow-owner.reply.schema.json": [
+      "flow-registry",
+      "env-registry"
+    ],
+    "svc/flow-registry/schemas/service.flow-owner.request.schema.json": [
+      "flow-registry",
+      "env-registry"
+    ],
+    "svc/flow-registry/schemas/service.llm-settings.reply.schema.json": [
+      "flow-registry",
+      "model-registry"
+    ],
+    "svc/flow-registry/schemas/service.llm-settings.request.schema.json": [
+      "flow-registry",
+      "model-registry"
+    ],
+    "svc/flow-registry/schemas/service.restore-alias.reply.schema.json": [
+      "flow-registry",
+      "model-registry"
+    ],
+    "svc/flow-registry/schemas/service.restore-alias.request.schema.json": [
+      "flow-registry",
+      "model-registry"
+    ],
+    "svc/flow-registry/schemas/service.retire-alias.reply.schema.json": [
+      "flow-registry",
+      "model-registry"
+    ],
+    "svc/flow-registry/schemas/service.retire-alias.request.schema.json": [
+      "flow-registry",
+      "model-registry"
+    ],
+    "svc/flow-registry/schemas/service.targets.reply.schema.json": [
+      "flow-registry",
+      "task-manager"
+    ],
+    "svc/flow-registry/schemas/service.targets.request.schema.json": [
+      "flow-registry",
+      "task-manager"
+    ],
+    "svc/flow-registry/schemas/ui.flow-create.reply.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.flow-create.request.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.flow-get.reply.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.flow-get.request.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.flow-preview.reply.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.flow-preview.request.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.flow-replace.reply.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.flow-replace.request.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.flows-list.reply.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.flows-list.request.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.llm-settings-get.reply.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.llm-settings-get.request.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.llm-settings-list.reply.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.llm-settings-list.request.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.llm-settings-replace.reply.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/flow-registry/schemas/ui.llm-settings-replace.request.schema.json": [
+      "flow-registry",
+      "api-gateway"
+    ],
+    "svc/model-registry/schemas/defs.schema.json": [
+      "model-registry",
+      "api-gateway",
+      "audit",
+      "executor_docker_openhands",
+      "executor_k8s_openhands",
+      "flow-registry",
+      "journal",
+      "task-manager"
+    ],
+    "svc/model-registry/schemas/service.apply-flow-team.reply.schema.json": [
+      "model-registry",
+      "flow-registry"
+    ],
+    "svc/model-registry/schemas/service.apply-flow-team.request.schema.json": [
+      "model-registry",
+      "flow-registry"
+    ],
+    "svc/model-registry/schemas/service.flows-status.reply.schema.json": [
+      "model-registry",
+      "flow-registry"
+    ],
+    "svc/model-registry/schemas/service.flows-status.request.schema.json": [
+      "model-registry",
+      "flow-registry"
+    ],
+    "svc/model-registry/schemas/service.remove-flow-team.reply.schema.json": [
+      "model-registry",
+      "flow-registry"
+    ],
+    "svc/model-registry/schemas/service.remove-flow-team.request.schema.json": [
+      "model-registry",
+      "flow-registry"
+    ],
+    "svc/model-registry/schemas/service.validate-models.reply.schema.json": [
+      "model-registry",
+      "flow-registry"
+    ],
+    "svc/model-registry/schemas/service.validate-models.request.schema.json": [
+      "model-registry",
+      "flow-registry"
+    ],
+    "svc/executor-registry/schemas/service.team-tags.reply.schema.json": [
+      "executor-registry",
+      "flow-registry"
+    ],
+    "svc/executor-registry/schemas/service.team-tags.request.schema.json": [
+      "executor-registry",
+      "flow-registry"
+    ]
+  }
+}

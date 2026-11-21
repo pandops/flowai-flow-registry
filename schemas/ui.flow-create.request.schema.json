@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ui.flow-create.request.schema.json",
+  "title": "flow-create request",
+  "description": "Request headers: team (decimal team_id), operator_id, request_id, optional team_name. Backs POST /ui/v1/flows.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "params": {
+      "description": "Always an empty object: the operation has no path or query parameters.",
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 0
+    },
+    "body": {
+      "$ref": "defs.schema.json#/$defs/flowWriteBody"
+    }
+  },
+  "required": ["body"]
+}

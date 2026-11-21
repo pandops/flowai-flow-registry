@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "service.alias-usage.reply.schema.json",
+  "title": "alias-usage reply",
+  "description": "Status 200. flows: same-team Flows listing the alias; sole_alias_flows: those whose list is only this alias.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["flows", "sole_alias_flows"],
+  "properties": {
+    "flows": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.schema.json#/$defs/flowRef"
+      }
+    },
+    "sole_alias_flows": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.schema.json#/$defs/flowRef"
+      }
+    }
+  }
+}

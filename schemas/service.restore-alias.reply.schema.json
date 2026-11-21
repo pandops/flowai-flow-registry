@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "service.restore-alias.reply.schema.json",
+  "title": "restore-alias reply",
+  "description": "Status 204 with an empty body: the alias may be selected again; no Flow references are restored. No body is sent on success, so this schema describes only the error bodies (400 invalid_request, 503 service_unavailable).",
+  "allOf": [
+    {
+      "$ref": "error.reply.schema.json"
+    }
+  ],
+  "type": "object",
+  "not": {
+    "required": ["flows"]
+  }
+}
