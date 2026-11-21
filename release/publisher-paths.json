@@ -1,0 +1,17 @@
+[
+  "svc/executor-registry/schemas/service.team-tags.reply.schema.json",
+  "svc/executor-registry/schemas/service.team-tags.request.schema.json",
+  "svc/model-registry/schemas/defs.schema.json",
+  "svc/model-registry/schemas/service.apply-flow-team.reply.schema.json",
+  "svc/model-registry/schemas/service.apply-flow-team.request.schema.json",
+  "svc/model-registry/schemas/service.flows-status.reply.schema.json",
+  "svc/model-registry/schemas/service.flows-status.request.schema.json",
+  "svc/model-registry/schemas/service.remove-flow-team.reply.schema.json",
+  "svc/model-registry/schemas/service.remove-flow-team.request.schema.json",
+  "svc/model-registry/schemas/service.validate-models.reply.schema.json",
+  "svc/model-registry/schemas/service.validate-models.request.schema.json",
+  "svc/source-controller/schemas/service.binding-guard.reply.schema.json",
+  "svc/source-controller/schemas/service.binding-guard.request.schema.json",
+  "svc/source-controller/schemas/service.sources-lookup.reply.schema.json",
+  "svc/source-controller/schemas/service.sources-lookup.request.schema.json"
+]

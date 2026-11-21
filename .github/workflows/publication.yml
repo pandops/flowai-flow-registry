@@ -1,0 +1,144 @@
+name: Flow Registry read-only publication pilot
+run-name: Flow Registry read-only pilot at ${{ inputs.expected_source_sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_source_sha:
+        type: string
+        required: true
+      selected_ref:
+        type: string
+        required: true
+      publisher_pins:
+        type: string
+        required: true
+      expected_version:
+        type: string
+        required: true
+
+permissions: {}
+env:
+  SELECTED_SOURCE: ${{ inputs.expected_source_sha }}
+  SELECTED_REF: ${{ inputs.selected_ref }}
+  PUBLISHER_PINS: ${{ inputs.publisher_pins }}
+
+jobs:
+  qualify:
+    if: github.repository == 'pandops/flowai-flow-registry' && github.ref == 'refs/heads/master' && github.ref_protected && github.run_attempt == '1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: flow-registry-read-only-pilot
+    permissions:
+      contents: read
+    env: &approval
+      APPROVED_WORKFLOW_REVISION: ${{ vars.FLOW_REGISTRY_PILOT_WORKFLOW_REVISION }}
+      APPROVED_SOURCE: ${{ vars.FLOW_REGISTRY_PILOT_SOURCE }}
+      APPROVED_PINS: ${{ vars.FLOW_REGISTRY_PILOT_PINS }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: trusted
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - name: Check approved refs and pins
+        run: node trusted/release/authority.mjs --check trusted
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.expected_source_sha }}
+          path: candidate
+          persist-credentials: false
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version: '1.26.2'
+          cache: false
+      - name: Run required suites at exact source and declared pins
+        run: node trusted/release/actions.mjs qualify trusted candidate "$RUNNER_TEMP/qualification"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: qualification-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/qualification/qualification.json
+            ${{ runner.temp }}/qualification/unit.log
+            ${{ runner.temp }}/qualification/integration.log
+          if-no-files-found: error
+
+  build:
+    needs: qualify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: flow-registry-read-only-pilot
+    permissions:
+      contents: read
+    env: *approval
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: trusted
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - name: Check approved refs and pins
+        run: node trusted/release/authority.mjs --check trusted
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.expected_source_sha }}
+          path: candidate
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
+        with:
+          version: v0.31.1
+          driver-opts: image=moby/buildkit:v0.27.1@sha256:1e110c71d389d6d24f67b9438e2f7b8da749a6ff407b22a1631e025c95599368
+          cache-binary: false
+      - name: Export candidate OCI archive
+        run: node trusted/release/actions.mjs build trusted candidate "$RUNNER_TEMP/oci"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: oci-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/oci/build.json
+            ${{ runner.temp }}/oci/image.oci.tar
+          if-no-files-found: error
+          compression-level: 0
+
+  verify-publication-context:
+    needs: [qualify, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: flow-registry-read-only-pilot
+    permissions:
+      actions: read
+      contents: read
+    env: *approval
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: trusted
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - name: Check approved refs and pins
+        run: node trusted/release/authority.mjs --check trusted
+      - name: Install the trusted semantic-release lock
+        working-directory: trusted/release
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Bind qualification and OCI to the approved publication context
+        env:
+          ACTIONS_READ_TOKEN: ${{ github.token }}
+          EXPECTED_VERSION: ${{ inputs.expected_version }}
+        run: node trusted/release/verify-run.mjs trusted "$RUNNER_TEMP/publication-context.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: publication-context-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/publication-context.json
+          if-no-files-found: error
