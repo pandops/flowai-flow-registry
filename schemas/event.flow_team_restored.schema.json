@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "event.flow_team_restored.schema.json",
+  "title": "flow_team_restored event",
+  "description": "Subject flow-registry.event.flow_team_restored.pub, stream ALL_EVENT. Published after the background apply-flow-team restoration that followed a failed commit; no human requested it.",
+  "allOf": [
+    {
+      "$ref": "defs.schema.json#/$defs/envelopeFields"
+    }
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "publisher",
+    "publisher_seq",
+    "team_id",
+    "occurred_at",
+    "kind",
+    "flow_id",
+    "flow_revision"
+  ],
+  "properties": {
+    "publisher": {
+      "const": "flow-registry"
+    },
+    "publisher_seq": {
+      "$ref": "defs.schema.json#/$defs/id"
+    },
+    "team_id": {
+      "$ref": "defs.schema.json#/$defs/id"
+    },
+    "occurred_at": {
+      "type": "string"
+    },
+    "kind": {
+      "const": "flow_team_restored"
+    },
+    "flow_id": {
+      "$ref": "defs.schema.json#/$defs/id"
+    },
+    "flow_revision": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

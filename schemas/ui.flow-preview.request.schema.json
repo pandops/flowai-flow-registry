@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ui.flow-preview.request.schema.json",
+  "title": "flow-preview request",
+  "description": "Request headers: team (decimal team_id), operator_id, request_id, optional team_name. Backs POST /ui/v1/flows/preview. A caller-supplied team_id is rejected.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "params": {
+      "description": "Always an empty object: the operation has no path or query parameters.",
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 0
+    },
+    "body": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prompt_template", "external_id"],
+      "properties": {
+        "prompt_template": {
+          "type": "string",
+          "minLength": 1
+        },
+        "external_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    }
+  },
+  "required": ["body"]
+}

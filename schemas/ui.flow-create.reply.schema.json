@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ui.flow-create.reply.schema.json",
+  "title": "flow-create reply",
+  "description": "Status 201, reply header ETag \"<revision>\".",
+  "$ref": "defs.schema.json#/$defs/flow"
+}

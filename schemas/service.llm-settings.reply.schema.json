@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "service.llm-settings.reply.schema.json",
+  "title": "llm-settings reply",
+  "description": "Status 200, or 404 not_found for an unknown or foreign Flow.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["model_aliases", "per_task_limit", "flow_limit", "revision"],
+  "properties": {
+    "model_aliases": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.schema.json#/$defs/modelAlias"
+      },
+      "maxItems": 5
+    },
+    "per_task_limit": {
+      "$ref": "defs.schema.json#/$defs/perTaskLimit"
+    },
+    "flow_limit": {
+      "$ref": "defs.schema.json#/$defs/flowLimit"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "service.restore-alias.request.schema.json",
+  "title": "restore-alias request",
+  "description": "Fields travel in params (rule 9). Request headers: team (decimal team_id of the causing message, or admin), request_id. Operator headers grant nothing on service subjects. Only caller: model-registry. Reply: status 204 with empty body.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["team_id", "alias"],
+      "properties": {
+        "team_id": {
+          "$ref": "defs.schema.json#/$defs/id"
+        },
+        "alias": {
+          "$ref": "defs.schema.json#/$defs/modelAlias"
+        }
+      }
+    }
+  },
+  "required": ["params"]
+}

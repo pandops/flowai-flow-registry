@@ -1,0 +1,33 @@
+# flow-registry configuration (mounted at /etc/flowai/config.yaml).
+# Values in <...> are deployment-specific and required.
+http:
+  # Probe listener: GET /v1/livez and /v1/readyz only.
+  listen: ":8080"
+db:
+  host: <postgresql host>
+  port: 5432
+  user: <flow-registry role>
+  password: <flow-registry role password>
+  name: flowai
+  # The service's own schema; created at startup only when missing.
+  schema: flow_registry_schema
+  # Only verify-full is accepted.
+  sslmode: verify-full
+  ca_file: /run/flowai/stand-ca/ca.pem
+nats:
+  # Only tls:// is accepted.
+  url: tls://<nats host>:4222
+  ca_file: /run/flowai/stand-ca/ca.pem
+  # NATS operator-mode user credentials (JWT and seed).
+  credentials_file: /run/flowai/nats/user.creds
+  inbox_prefix: _INBOX.flow-registry
+  # Bound for every request to another service.
+  request_timeout: 5s
+# HMAC keys for opaque list cursors; at least 32 bytes each. Give each key
+# either secret_hex or secret_file. Old keys stay listed while their cursors
+# may still be in use.
+cursor_keys:
+  - id: 1
+    secret_file: <path to a file with at least 32 secret bytes>
+active_cursor_key_id: 1
+cursor_ttl_seconds: 86400

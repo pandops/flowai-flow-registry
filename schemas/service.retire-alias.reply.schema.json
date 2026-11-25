@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "service.retire-alias.reply.schema.json",
+  "title": "retire-alias reply",
+  "description": "Status 204 with an empty body when every Flow listing the alias dropped it, or when the alias was already retired; no body is sent, so this schema describes only the error bodies. Status 409 model_last_in_flow carries the Flows whose only model is the alias, and nothing changed. Other errors (400 invalid_request, 503 service_unavailable) carry the error object.",
+  "allOf": [
+    {
+      "$ref": "error.reply.schema.json"
+    }
+  ],
+  "type": "object",
+  "if": {
+    "properties": {
+      "code": {
+        "const": "model_last_in_flow"
+      }
+    },
+    "required": ["code"]
+  },
+  "then": {
+    "required": ["flows"],
+    "properties": {
+      "flows": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "$ref": "defs.schema.json#/$defs/flowRef"
+        }
+      }
+    }
+  }
+}

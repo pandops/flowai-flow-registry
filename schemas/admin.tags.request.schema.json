@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "admin.tags.request.schema.json",
+  "title": "admin tags request",
+  "description": "Request headers: team: admin, admin_subject, request_id. Only caller: admin-panel, which wraps next in its own cursor and sends it back as body.after.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "team_id": {
+          "$ref": "defs.schema.json#/$defs/id"
+        },
+        "tag": {
+          "$ref": "defs.schema.json#/$defs/executionTag"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      }
+    },
+    "body": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["team_id", "execution_tag", "flow_id"],
+          "description": "Opaque continuation position; admin-panel wraps it in its own cursor and returns it unchanged.",
+          "properties": {
+            "team_id": {
+              "$ref": "defs.schema.json#/$defs/id"
+            },
+            "execution_tag": {
+              "$ref": "defs.schema.json#/$defs/executionTag"
+            },
+            "flow_id": {
+              "$ref": "defs.schema.json#/$defs/id"
+            }
+          }
+        }
+      },
+      "description": "Absent on the first page."
+    }
+  }
+}

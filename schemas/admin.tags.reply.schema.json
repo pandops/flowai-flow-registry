@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "admin.tags.reply.schema.json",
+  "title": "admin tags reply",
+  "description": "Status 200. Ordered by (team_id, execution_tag, flow_id).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["items", "next"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["team_id", "flow_id", "execution_tag"],
+        "properties": {
+          "team_id": {
+            "$ref": "defs.schema.json#/$defs/id"
+          },
+          "flow_id": {
+            "$ref": "defs.schema.json#/$defs/id"
+          },
+          "execution_tag": {
+            "$ref": "defs.schema.json#/$defs/executionTag"
+          }
+        }
+      }
+    },
+    "next": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["team_id", "execution_tag", "flow_id"],
+          "description": "Opaque continuation position; admin-panel wraps it in its own cursor and returns it unchanged.",
+          "properties": {
+            "team_id": {
+              "$ref": "defs.schema.json#/$defs/id"
+            },
+            "execution_tag": {
+              "$ref": "defs.schema.json#/$defs/executionTag"
+            },
+            "flow_id": {
+              "$ref": "defs.schema.json#/$defs/id"
+            }
+          }
+        }
+      ],
+      "description": "Position after the last item, or null on the last page."
+    }
+  }
+}
