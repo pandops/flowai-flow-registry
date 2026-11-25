@@ -1,0 +1,92 @@
+[
+  {
+    "digest": "sha256:4010b2da94256456337d3461cbc94cfae32e87e4d59fd8fff2783fb416360c9c",
+    "path": "schemas/service.binding-guard.reply.schema.json",
+    "repository": "pandops/flowai-source-controller",
+    "sourceRevision": "c48fd383225e3647f2447d5874086bfaf0b0c670"
+  },
+  {
+    "digest": "sha256:ef16f20792f572fb232978eb25ca92b4ff35d2d3e532ef7af54c138e56508e92",
+    "path": "schemas/service.binding-guard.request.schema.json",
+    "repository": "pandops/flowai-source-controller",
+    "sourceRevision": "c48fd383225e3647f2447d5874086bfaf0b0c670"
+  },
+  {
+    "digest": "sha256:cb561c21e0cbe1f3f32c8028f6292bab96c98b3faa72ecbddc54dcd2d8125add",
+    "path": "schemas/service.sources-lookup.reply.schema.json",
+    "repository": "pandops/flowai-source-controller",
+    "sourceRevision": "c48fd383225e3647f2447d5874086bfaf0b0c670"
+  },
+  {
+    "digest": "sha256:418e88d768d9c6d011a1696eaa0cd518924bb003628f0a3d1e276c400b615ec8",
+    "path": "schemas/service.sources-lookup.request.schema.json",
+    "repository": "pandops/flowai-source-controller",
+    "sourceRevision": "c48fd383225e3647f2447d5874086bfaf0b0c670"
+  },
+  {
+    "digest": "sha256:8ad1f347c1f7f24e48cc66346fb789de06409e19cf3337d7e358835aa7eb0edb",
+    "path": "schemas/defs.schema.json",
+    "repository": "pandops/flowai-model-registry",
+    "sourceRevision": "dd8d90d1f2952cbd6e544e2d83653ff319b8fec8"
+  },
+  {
+    "digest": "sha256:3b516574def4e55b20d46e6409f6537df74ed95c030eca408aabd18f580b9d1e",
+    "path": "schemas/service.apply-flow-team.reply.schema.json",
+    "repository": "pandops/flowai-model-registry",
+    "sourceRevision": "dd8d90d1f2952cbd6e544e2d83653ff319b8fec8"
+  },
+  {
+    "digest": "sha256:f733cf30d054da5dea78d59e26e55eac204d29f6a402f550383f0c5bebb011b3",
+    "path": "schemas/service.apply-flow-team.request.schema.json",
+    "repository": "pandops/flowai-model-registry",
+    "sourceRevision": "dd8d90d1f2952cbd6e544e2d83653ff319b8fec8"
+  },
+  {
+    "digest": "sha256:92d644fb4e76107cdc01b1192590e95a9c6d34259d1c9da9723507dcbe694ed0",
+    "path": "schemas/service.flows-status.reply.schema.json",
+    "repository": "pandops/flowai-model-registry",
+    "sourceRevision": "dd8d90d1f2952cbd6e544e2d83653ff319b8fec8"
+  },
+  {
+    "digest": "sha256:45c244de8f56cf28c4a12f63dfb72c7c616a788a47fcc5a2c5b4d065444b6194",
+    "path": "schemas/service.flows-status.request.schema.json",
+    "repository": "pandops/flowai-model-registry",
+    "sourceRevision": "dd8d90d1f2952cbd6e544e2d83653ff319b8fec8"
+  },
+  {
+    "digest": "sha256:cdd9bcdc3360afcba2b67c281e117a5d80bb26126b5a05bd0f0dedef69ec81ad",
+    "path": "schemas/service.remove-flow-team.reply.schema.json",
+    "repository": "pandops/flowai-model-registry",
+    "sourceRevision": "dd8d90d1f2952cbd6e544e2d83653ff319b8fec8"
+  },
+  {
+    "digest": "sha256:8cb6d3625aa28f11e53da87de78aa83640783496a32898065150ba94d26e98a3",
+    "path": "schemas/service.remove-flow-team.request.schema.json",
+    "repository": "pandops/flowai-model-registry",
+    "sourceRevision": "dd8d90d1f2952cbd6e544e2d83653ff319b8fec8"
+  },
+  {
+    "digest": "sha256:f5fb5e1c822f9b0ebbcbb681531f3e63cf92da61589d190f86feb28bcbe95761",
+    "path": "schemas/service.validate-models.reply.schema.json",
+    "repository": "pandops/flowai-model-registry",
+    "sourceRevision": "dd8d90d1f2952cbd6e544e2d83653ff319b8fec8"
+  },
+  {
+    "digest": "sha256:7eeef0503e4537690c6c226f2bd6104d7a2a7d9c9749e8a2db3ddae443191968",
+    "path": "schemas/service.validate-models.request.schema.json",
+    "repository": "pandops/flowai-model-registry",
+    "sourceRevision": "dd8d90d1f2952cbd6e544e2d83653ff319b8fec8"
+  },
+  {
+    "digest": "sha256:c4bd10ad09cc1ba37a676602d2ded9cf7628a9cda7b9ddc63929c7903bab6e93",
+    "path": "schemas/service.team-tags.reply.schema.json",
+    "repository": "pandops/flowai-executor-registry",
+    "sourceRevision": "e257f61cfaac8249615477a4c54815c2f69637e1"
+  },
+  {
+    "digest": "sha256:b83a05758f7dfa858fa44d15d7d199d75995b8c7f5cf9d1f88f2897f333c2ad5",
+    "path": "schemas/service.team-tags.request.schema.json",
+    "repository": "pandops/flowai-executor-registry",
+    "sourceRevision": "e257f61cfaac8249615477a4c54815c2f69637e1"
+  }
+]
